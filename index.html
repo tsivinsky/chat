@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat</title>
+  </head>
+  <body>
+    <h1>Chat</h1>
+
+    <h2>Users:</h2>
+    <ul id="users-list"></ul>
+    <div id="messages-list">
+      <h2>Messages</h2>
+    </div>
+
+    <div>
+      <input type="text" id="message" />
+      <button id="send">Send</button>
+    </div>
+
+    <script>
+      const query = new URLSearchParams(window.location.search);
+      const name = query.get("name");
+
+      const ws = new WebSocket(`ws://localhost:5000/ws?name=${name}`);
+
+      ws.addEventListener("open", (event) => {
+        console.log("we live");
+      });
+
+      ws.addEventListener("message", (event) => {
+        const data = JSON.parse(event.data);
+        switch (data.type) {
+          case "message": {
+            const messagesList = document.querySelector("div#messages-list");
+            const message = document.createElement("p");
+            message.textContent = data.message;
+            messagesList.appendChild(message);
+            break;
+          }
+
+          case "new_user": {
+            const usersList = document.querySelector("#users-list");
+            const user = document.createElement("li");
+            user.textContent = data.message;
+            usersList.appendChild(user);
+            break;
+          }
+
+          case "just_connected":
+          case "user_disconnected": {
+            const usersList = document.querySelector("#users-list");
+            usersList.innerHTML = "";
+            data.users.forEach((user) => {
+              const userElement = document.createElement("li");
+              userElement.textContent = user;
+              usersList.appendChild(userElement);
+            });
+            break;
+          }
+        }
+      });
+
+      const sendBtn = document.querySelector("button#send");
+      sendBtn.addEventListener("click", (event) => {
+        const message = document.querySelector("input#message").value;
+        ws.send(message);
+        document.querySelector("input#message").value = "";
+      });
+    </script>
+  </body>
+</html>
